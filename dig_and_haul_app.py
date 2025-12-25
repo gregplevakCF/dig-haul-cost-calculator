@@ -6,6 +6,8 @@ Run with: streamlit run dig_and_haul_app.py
 import streamlit as st
 import pandas as pd
 import math
+import os
+from pathlib import Path
 
 # Page configuration
 st.set_page_config(
@@ -33,7 +35,12 @@ st.markdown("""
 # Logo and Title
 col1, col2 = st.columns([1, 4])
 with col1:
-    st.image("Clean_Futures_2.png", width=200)
+    # Check if logo file exists
+    logo_path = Path("Clean_Futures_2.png")
+    if logo_path.exists():
+        st.image(str(logo_path), width=200)
+    else:
+        st.markdown("### Clean Futures")
 with col2:
     st.title("Dig and Haul Cost Calculator")
     st.markdown("Calculate costs and CO2 emissions for excavating contaminated soil and replacing with clean backfill")
@@ -448,8 +455,4 @@ else:
 
 # Footer
 st.markdown("---")
-footer_col1, footer_col2 = st.columns([3, 1])
-with footer_col1:
-    st.markdown("**Dig and Haul Cost Calculator** v1.1 | Built by Clean Futures with Streamlit")
-with footer_col2:
-    st.image("Clean_Futures_2.png", width=150)
+footer_col1, footer_col2 = st.columns([3
