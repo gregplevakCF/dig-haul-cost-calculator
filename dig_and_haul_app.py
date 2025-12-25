@@ -30,9 +30,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Title
-st.title("🚜 Dig and Haul Cost Calculator")
-st.markdown("Calculate costs and CO2 emissions for excavating contaminated soil and replacing with clean backfill")
+# Logo and Title
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.image("Clean_Futures_2.png", width=200)
+with col2:
+    st.title("Dig and Haul Cost Calculator")
+    st.markdown("Calculate costs and CO2 emissions for excavating contaminated soil and replacing with clean backfill")
 
 # Sidebar for inputs
 st.sidebar.header("📋 Project Inputs")
@@ -444,4 +448,8 @@ else:
 
 # Footer
 st.markdown("---")
-st.markdown("**Dig and Haul Cost Calculator** v1.1 | Built with Streamlit")
+footer_col1, footer_col2 = st.columns([3, 1])
+with footer_col1:
+    st.markdown("**Dig and Haul Cost Calculator** v1.1 | Built by Clean Futures with Streamlit")
+with footer_col2:
+    st.image("Clean_Futures_2.png", width=150)
