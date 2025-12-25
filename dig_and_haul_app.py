@@ -455,4 +455,10 @@ else:
 
 # Footer
 st.markdown("---")
-footer_col1, footer_col2 = st.columns([3
+footer_col1, footer_col2 = st.columns([3, 1])
+with footer_col1:
+    st.markdown("**Dig and Haul Cost Calculator** v1.1 | Built by Clean Futures with Streamlit")
+with footer_col2:
+    logo_path = Path("Clean_Futures_2.png")
+    if logo_path.exists():
+        st.image(str(logo_path), width=150)
