@@ -32,18 +32,18 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Logo and Title
-col1, col2 = st.columns([1, 4])
-with col1:
+# Logo and Title - Centered
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
     # Check if logo file exists
     logo_path = Path("Clean_Futures_2.png")
     if logo_path.exists():
-        st.image(str(logo_path), width=200)
+        st.image(str(logo_path), use_container_width=True)
     else:
-        st.markdown("### Clean Futures")
-with col2:
-    st.title("Dig and Haul Cost Calculator")
-    st.markdown("Calculate costs and CO2 emissions for excavating contaminated soil and replacing with clean backfill")
+        st.markdown("<h2 style='text-align: center;'>Clean Futures</h2>", unsafe_allow_html=True)
+    
+    st.markdown("<h1 style='text-align: center;'>Dig and Haul Cost Calculator</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Calculate costs and CO2 emissions for excavating contaminated soil and replacing with clean backfill</p>", unsafe_allow_html=True)
 
 # Sidebar for inputs
 st.sidebar.header("📋 Project Inputs")
