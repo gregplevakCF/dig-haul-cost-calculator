@@ -1,31 +1,3 @@
 streamlit
-   pandas
-   openpyxl
-```
-
-5. **Scroll down and click "Commit new file"**
-
-✅ **Done!** Now your repo has everything needed.
-
----
-
-## 🚀 Now Deploy to Streamlit Cloud
-
-1. **Go to:** https://share.streamlit.io/
-
-2. **Sign in** with GitHub (use your gregplevakCF account)
-
-3. **Click "New app"**
-
-4. **Fill in:**
-   - **Repository:** `gregplevakCF/dig-haul-cost-calculator`
-   - **Branch:** `main`
-   - **Main file path:** `dig_and_haul_app.py`
-
-5. **Click "Deploy!"**
-
-6. **Wait 2-3 minutes** while it builds
-
-7. **You'll get a live URL!** Something like:
-```
-   https://dig-haul-cost-calculator.streamlit.app
+pandas
+openpyxl
