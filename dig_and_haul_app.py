@@ -81,7 +81,7 @@ st.sidebar.subheader("Fuel Surcharge (Optional)")
 fuel_surcharge_enabled = st.sidebar.checkbox("Enable Fuel Surcharge", value=False)
 if fuel_surcharge_enabled:
     fuel_surcharge_amount = st.sidebar.number_input("Surcharge Amount ($)", min_value=0, value=250, step=50)
-    fuel_surcharge_interval = st.sidebar.selectbox("Surcharge Interval", ["daily", "weekly"])
+    fuel_surcharge_interval = st.sidebar.selectbox("Surcharge Interval", ["daily", "weekly", "per-trip"])
 else:
     fuel_surcharge_amount = 0
     fuel_surcharge_interval = "daily"
@@ -176,9 +176,13 @@ if calculate or 'results' in st.session_state:
     if fuel_surcharge_enabled:
         if fuel_surcharge_interval == "daily":
             fuel_surcharge_cost = fuel_surcharge_amount * project_days
-        else:  # weekly
+        elif fuel_surcharge_interval == "weekly":
             project_weeks = math.ceil(project_days / 7)
             fuel_surcharge_cost = fuel_surcharge_amount * project_weeks
+        elif fuel_surcharge_interval == "per-trip":
+            fuel_surcharge_cost = fuel_surcharge_amount * num_trips
+        else:
+            fuel_surcharge_cost = 0
     else:
         fuel_surcharge_cost = 0
     
