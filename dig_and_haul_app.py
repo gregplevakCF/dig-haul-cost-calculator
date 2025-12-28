@@ -1,6 +1,8 @@
 """
-Dig and Haul Cost Calculator - Streamlit Web App
+Dig and Haul Cost Calculator - Streamlit Web App v1.2
 Run with: streamlit run dig_and_haul_app.py
+
+Version 1.2: Fuel costs included in hourly rates, optional fuel surcharge
 """
 
 import streamlit as st
@@ -55,23 +57,34 @@ work_hours_per_day = st.sidebar.number_input("Work Hours per Day", min_value=1, 
 
 # Equipment
 st.sidebar.subheader("Equipment at Site")
+st.sidebar.caption("Note: Hourly rates typically include fuel")
+
 num_excavators = st.sidebar.number_input("Number of Excavators", min_value=0, value=1, step=1)
-excavator_rate = st.sidebar.number_input("Excavator Hourly Rate ($)", min_value=0, value=150, step=5)
-excavator_fuel = st.sidebar.number_input("Excavator Fuel (gal/hr)", min_value=0.0, value=6.0, step=0.5)
+excavator_rate = st.sidebar.number_input("Excavator Hourly Rate ($/hr, includes fuel)", min_value=0, value=150, step=5)
+excavator_fuel = st.sidebar.number_input("Excavator Fuel (gal/hr) - for CO2 tracking", min_value=0.0, value=6.0, step=0.5)
 excavator_capacity = st.sidebar.number_input("Excavator Production (CY/hr)", min_value=0, value=40, step=5)
 
 num_loaders = st.sidebar.number_input("Number of Loaders", min_value=0, value=1, step=1)
-loader_rate = st.sidebar.number_input("Loader Hourly Rate ($)", min_value=0, value=125, step=5)
-loader_fuel = st.sidebar.number_input("Loader Fuel (gal/hr)", min_value=0.0, value=5.0, step=0.5)
+loader_rate = st.sidebar.number_input("Loader Hourly Rate ($/hr, includes fuel)", min_value=0, value=125, step=5)
+loader_fuel = st.sidebar.number_input("Loader Fuel (gal/hr) - for CO2 tracking", min_value=0.0, value=5.0, step=0.5)
 loader_capacity = st.sidebar.number_input("Loader Production (CY/hr)", min_value=0, value=35, step=5)
 
 # Trucking
 st.sidebar.subheader("Trucking")
 num_trucks = st.sidebar.number_input("Number of Trucks", min_value=1, value=3, step=1)
 truck_capacity = st.sidebar.number_input("Truck Capacity (CY)", min_value=1, value=18, step=1)
-truck_hourly_rate = st.sidebar.number_input("Truck Hourly Rate (includes driver)", min_value=0, value=85, step=5)
-truck_fuel_rate = st.sidebar.number_input("Truck Fuel (gal/hr)", min_value=0.0, value=4.0, step=0.5)
-fuel_cost = st.sidebar.number_input("Fuel Cost ($/gallon)", min_value=0.0, value=3.50, step=0.10)
+truck_hourly_rate = st.sidebar.number_input("Truck Hourly Rate ($/hr, includes driver & fuel)", min_value=0, value=85, step=5)
+truck_fuel_rate = st.sidebar.number_input("Truck Fuel (gal/hr) - for CO2 tracking", min_value=0.0, value=4.0, step=0.5)
+
+# Fuel Surcharge
+st.sidebar.subheader("Fuel Surcharge (Optional)")
+fuel_surcharge_enabled = st.sidebar.checkbox("Enable Fuel Surcharge", value=False)
+if fuel_surcharge_enabled:
+    fuel_surcharge_amount = st.sidebar.number_input("Surcharge Amount ($)", min_value=0, value=250, step=50)
+    fuel_surcharge_interval = st.sidebar.selectbox("Surcharge Interval", ["daily", "weekly"])
+else:
+    fuel_surcharge_amount = 0
+    fuel_surcharge_interval = "daily"
 
 st.sidebar.subheader("Trip Times")
 loading_time = st.sidebar.number_input("Loading Time (hours)", min_value=0.0, value=0.25, step=0.05)
@@ -103,11 +116,10 @@ calculate = st.sidebar.button("🧮 Calculate", type="primary")
 if calculate or 'results' in st.session_state:
     
     # Perform calculations
-    # Equipment capacity
+    # Equipment capacity - Sequential (excavator -> loader, use minimum)
     excavator_total_capacity = num_excavators * excavator_capacity
     loader_total_capacity = num_loaders * loader_capacity
     
-    # Sequential equipment - use minimum (bottleneck)
     if excavator_total_capacity > 0 and loader_total_capacity > 0:
         excavation_capacity = min(excavator_total_capacity, loader_total_capacity)
         if excavator_total_capacity < loader_total_capacity:
@@ -151,19 +163,24 @@ if calculate or 'results' in st.session_state:
     num_trips = math.ceil(total_volume / truck_capacity)
     
     # Costs
-    # Equipment
+    # Equipment (fuel included in hourly rate)
     excavator_cost = num_excavators * excavator_rate * project_hours
-    excavator_fuel_cost = num_excavators * excavator_fuel * project_hours * fuel_cost
     loader_cost = num_loaders * loader_rate * project_hours
-    loader_fuel_cost = num_loaders * loader_fuel * project_hours * fuel_cost
-    
     total_equipment_cost = excavator_cost + loader_cost
-    total_equipment_fuel_cost = excavator_fuel_cost + loader_fuel_cost
     
-    # Trucking
+    # Trucking (fuel included in hourly rate)
     total_truck_hours = num_trips * trip_time
     trucking_cost = total_truck_hours * truck_hourly_rate
-    truck_fuel_cost = total_truck_hours * truck_fuel_rate * fuel_cost
+    
+    # Fuel surcharge
+    if fuel_surcharge_enabled:
+        if fuel_surcharge_interval == "daily":
+            fuel_surcharge_cost = fuel_surcharge_amount * project_days
+        else:  # weekly
+            project_weeks = math.ceil(project_days / 7)
+            fuel_surcharge_cost = fuel_surcharge_amount * project_weeks
+    else:
+        fuel_surcharge_cost = 0
     
     # Disposal
     total_disposal_cost = total_volume * disposal_cost
@@ -174,14 +191,17 @@ if calculate or 'results' in st.session_state:
     if not backfill_at_landfill:
         backfill_site_cost = total_truck_hours * backfill_equip_cost
     
-    # Total cost
-    total_cost = (total_equipment_cost + total_equipment_fuel_cost + 
-                  trucking_cost + truck_fuel_cost + 
-                  total_disposal_cost + total_backfill_cost + backfill_site_cost)
+    # Total cost (NO separate fuel costs - included in hourly rates)
+    total_cost = (total_equipment_cost + 
+                  trucking_cost + 
+                  fuel_surcharge_cost +
+                  total_disposal_cost + 
+                  total_backfill_cost + 
+                  backfill_site_cost)
     
     cost_per_cy = total_cost / total_volume
     
-    # CO2 calculations
+    # CO2 calculations (fuel tracked for emissions only, not billed)
     total_fuel_gallons = (num_excavators * excavator_fuel * project_hours + 
                          num_loaders * loader_fuel * project_hours +
                          total_truck_hours * truck_fuel_rate)
@@ -204,9 +224,8 @@ if calculate or 'results' in st.session_state:
         'truck_volume_per_day': truck_volume_per_day,
         'excavation_volume_per_day': excavation_volume_per_day,
         'total_equipment_cost': total_equipment_cost,
-        'total_equipment_fuel_cost': total_equipment_fuel_cost,
         'trucking_cost': trucking_cost,
-        'truck_fuel_cost': truck_fuel_cost,
+        'fuel_surcharge_cost': fuel_surcharge_cost,
         'total_disposal_cost': total_disposal_cost,
         'total_backfill_cost': total_backfill_cost,
         'backfill_site_cost': backfill_site_cost,
@@ -252,19 +271,17 @@ if calculate or 'results' in st.session_state:
         with col1:
             cost_data = {
                 'Category': [
-                    'Equipment Rental',
-                    'Equipment Fuel',
-                    'Trucking',
-                    'Truck Fuel',
+                    'Equipment (includes fuel)',
+                    'Trucking (includes fuel)',
+                    'Fuel Surcharge',
                     'Disposal',
                     'Backfill Material',
                     'Backfill Site Equipment'
                 ],
                 'Cost': [
                     f"${results['total_equipment_cost']:,.0f}",
-                    f"${results['total_equipment_fuel_cost']:,.0f}",
                     f"${results['trucking_cost']:,.0f}",
-                    f"${results['truck_fuel_cost']:,.0f}",
+                    f"${results['fuel_surcharge_cost']:,.0f}",
                     f"${results['total_disposal_cost']:,.0f}",
                     f"${results['total_backfill_cost']:,.0f}",
                     f"${results['backfill_site_cost']:,.0f}"
@@ -272,21 +289,22 @@ if calculate or 'results' in st.session_state:
             }
             df_costs = pd.DataFrame(cost_data)
             st.dataframe(df_costs, hide_index=True, use_container_width=True)
+            
+            st.info("💡 **Note:** Equipment and trucking hourly rates include fuel costs. Fuel consumption is tracked separately for CO2 calculations only.")
         
         with col2:
-            # Pie chart of costs
+            # Bar chart of costs
             cost_values = [
                 results['total_equipment_cost'],
-                results['total_equipment_fuel_cost'],
                 results['trucking_cost'],
-                results['truck_fuel_cost'],
+                results['fuel_surcharge_cost'],
                 results['total_disposal_cost'],
                 results['total_backfill_cost'],
                 results['backfill_site_cost']
             ]
-            cost_labels = ['Equipment', 'Equip Fuel', 'Trucking', 'Truck Fuel', 'Disposal', 'Backfill', 'Backfill Site']
+            cost_labels = ['Equipment', 'Trucking', 'Fuel Surcharge', 'Disposal', 'Backfill', 'Backfill Site']
             
-            # Create simple bar chart
+            # Create bar chart
             chart_data = pd.DataFrame({
                 'Category': cost_labels,
                 'Cost': cost_values
@@ -375,6 +393,8 @@ if calculate or 'results' in st.session_state:
             }
             df_env = pd.DataFrame(env_data)
             st.dataframe(df_env, hide_index=True, use_container_width=True)
+            
+            st.caption("Note: Fuel consumption tracked for CO2 calculations. Fuel costs are included in equipment/trucking hourly rates.")
         
         with col2:
             st.metric("🌳 Equivalent Trees Needed", f"{int(results['co2_tons'] * 16.5):,}")
@@ -397,8 +417,13 @@ if calculate or 'results' in st.session_state:
             'Number of Trips',
             'Bottleneck',
             'Equipment Bottleneck',
+            'Equipment Cost (includes fuel)',
+            'Trucking Cost (includes fuel)',
+            'Fuel Surcharge',
+            'Disposal Cost',
+            'Backfill Cost',
             'CO2 Emissions (tons)',
-            'Total Fuel (gallons)'
+            'Total Fuel (gallons) - for reference'
         ],
         'Value': [
             total_volume,
@@ -409,6 +434,11 @@ if calculate or 'results' in st.session_state:
             results['num_trips'],
             results['bottleneck'],
             results['equipment_bottleneck'],
+            f"${results['total_equipment_cost']:,.2f}",
+            f"${results['trucking_cost']:,.2f}",
+            f"${results['fuel_surcharge_cost']:,.2f}",
+            f"${results['total_disposal_cost']:,.2f}",
+            f"${results['total_backfill_cost']:,.2f}",
             f"{results['co2_tons']:.2f}",
             f"{results['total_fuel_gallons']:.0f}"
         ]
@@ -434,7 +464,8 @@ else:
     3. **Set trucking parameters** - number of trucks, capacity, and trip times
     4. **Specify backfill location** - at landfill or separate site
     5. **Enter costs** - disposal and backfill pricing
-    6. **Click Calculate** to see results!
+    6. **Optional: Enable fuel surcharge** - if your contract includes one
+    7. **Click Calculate** to see results!
     
     ### What You'll Get
     
@@ -444,20 +475,20 @@ else:
     - **CO2 emissions** tracking
     - **Detailed breakdowns** of costs and capacity
     
-    ### Key Features
+    ### Version 1.2 Updates
     
+    ✅ **Fuel costs included in hourly rates** - no more double-charging!  
+    ✅ **Optional fuel surcharge** - daily or weekly  
+    ✅ **Fuel tracked for CO2** - environmental impact visibility  
     ✅ **Sequential equipment modeling** - excavator → loader chain  
     ✅ **Bottleneck identification** - trucking vs excavation  
-    ✅ **Environmental tracking** - CO2 emissions  
-    ✅ **Cost optimization** - see where money is going  
-    ✅ **Downloadable results** - export to CSV
     """)
 
 # Footer
 st.markdown("---")
 footer_col1, footer_col2 = st.columns([3, 1])
 with footer_col1:
-    st.markdown("**Dig and Haul Cost Calculator** v1.1 | Built by Clean Futures with Streamlit")
+    st.markdown("**Dig and Haul Cost Calculator** v1.2 | Built by Clean Futures with Streamlit")
 with footer_col2:
     logo_path = Path("Clean_Futures_2.png")
     if logo_path.exists():
